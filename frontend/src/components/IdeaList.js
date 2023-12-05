@@ -1,3 +1,5 @@
+import IdeasApi from "../services/IdeasApi";
+
 export class IdeaList {
   #ideaListEl;
   #ideas;
@@ -5,29 +7,7 @@ export class IdeaList {
 
   constructor() {
     this.#ideaListEl = document.querySelector("#idea-list");
-    this.#ideas = [
-      {
-        id: 1,
-        text: "Idea 1",
-        tag: "Business",
-        username: "John",
-        date: "02/01/2023",
-      },
-      {
-        id: 2,
-        text: "Idea 2",
-        tag: "Health",
-        username: "John",
-        date: "02/01/2023",
-      },
-      {
-        id: 3,
-        text: "Idea 3",
-        tag: "Business",
-        username: "John",
-        date: "02/01/2023",
-      },
-    ];
+    this.#ideas = [];
     this.#validTags = new Set();
     this.#validTags.add("technology");
     this.#validTags.add("software");
@@ -35,6 +15,39 @@ export class IdeaList {
     this.#validTags.add("education");
     this.#validTags.add("health");
     this.#validTags.add("inventions");
+
+    this.getIdeas();
+  }
+
+  addEventListeners() {
+    this.#ideaListEl.addEventListener("click", (e) => {
+      if (e.target.classList.contains("fa-times")) {
+        e.stopImmediatePropagation();
+        const ideaId = e.target.parentElement.parentElement.dataset.id;
+        this.deleteIdea(ideaId);
+      }
+    });
+  }
+
+  async getIdeas() {
+    const res = await IdeasApi.getIdeas();
+    this.#ideas = res.data.data;
+
+    this.render();
+  }
+
+  async deleteIdea(ideaId) {
+    try {
+      await IdeasApi.deleteIdea(ideaId);
+      this.getIdeas();
+    } catch (error) {
+      alert("You can not delete this resource");
+    }
+  }
+
+  addIdeaToList(idea) {
+    this.#ideas.push(idea);
+    this.render();
   }
 
   getTagClass(tag) {
@@ -52,10 +65,11 @@ export class IdeaList {
     this.#ideaListEl.innerHTML = this.#ideas
       .map((idea) => {
         const tagClass = this.getTagClass(idea.tag);
+        const deleteBtn = idea.username === localStorage.getItem("username") ? `<button class="delete"><i class="fas fa-times"></i></button>` : "";
 
         return `
-        <div class="card">
-            <button class="delete"><i class="fas fa-times"></i></button>
+        <div class="card" data-id="${idea._id}">
+            ${deleteBtn}
             <h3>${idea.text}</h3>
             <p class="tag ${tagClass}">${idea.tag.toUpperCase()}</p>
             <p>
@@ -66,5 +80,7 @@ export class IdeaList {
         `;
       })
       .join("");
+
+    this.addEventListeners();
   }
 }
